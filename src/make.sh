@@ -5,7 +5,7 @@ ulimit -s  102400
 #gcc -c ./inp.c -I ./
 #ar crv inp.a inp.o
 
-g++ -c ./SphericalmovingGRP.c -g
+g++ -c ./SphericalmovingGRP.cpp -g
 g++ -o SphericalmovingGRP.out ./SphericalmovingGRP.o -lm
 
 #RUN
