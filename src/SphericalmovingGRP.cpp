@@ -25,6 +25,7 @@
 #define PR0 (1.01325)
 #define KK 0 //ALE number
 #include"./inp.h"
+#include"./VIPLimiter.h"
 int main()
 {	//parameters
 	double Gamma, GammaL=GAMMAL, GammaR=GAMMAR; 
@@ -480,7 +481,7 @@ int main()
 	RR[0]=0.;
 	RR[Ncell+1]=Domlen*cos(0.5*dtheta);
 	FILE *out,*outs;
-	outs=fopen("datas.m","w");
+	outs=fopen("../data_out/datas.m","w");
 	fprintf(outs,"RR=[");
 	Write(outs,RR,Ncell+1);
 	fprintf(outs,"DD=[");
@@ -534,11 +535,11 @@ int main()
 			UUxi2[Ncell][j]=UUxi2[Ncell-1][j];
 			PP2[Ncell][j]=PP2[Ncell-1][j];
 		}
-	out=fopen("datad2d.dat","w");
+	out=fopen("../data_out/datad2d.dat","w");
 	wrin2s(out,rb,zb,DD2);
-	out=fopen("datap2d.dat","w");
+	out=fopen("../data_out/datap2d.dat","w");
 	wrin2s(out,rb,zb,PP2);
-	out=fopen("datau2d.dat","w");
+	out=fopen("../data_out/datau2d.dat","w");
 	wrin2s(out,rb,zb,UUxi2);
 	return 1;
 }
