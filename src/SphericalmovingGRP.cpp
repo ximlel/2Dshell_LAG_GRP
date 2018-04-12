@@ -3,14 +3,16 @@
 #include<malloc.h>
 #define sec (0.5) // sec=0 1st order godunov,sec=0.5 godunov MUSCL
 #define pi (4.*atan(1.0))
-#define EPS (1e-9)
-#define Md 4105 // max vector dimension
-#define Mt 205  // max theta dimension
-#define Ncell 4100 // Number of computing cells in r direction
-#define Tcell 200  // Number of computing cells in theta direction
+#define EPS (1e-8)
+#define Md 305 // max vector dimension
+#define Mt 405  // max theta dimension
+#define Ncell 300 // Number of computing cells in r direction
+#define Tcell 400  // Number of computing cells in theta direction
+#define Tcell_plot 100
 #define Diaph1 (10.)
 #define Diaph2 (10.2)
-#define Domlen (10.25) // Domain length
+#define Diaph3 (10.25) // Domain length
+#define Domlen (15) // Domain length
 #define Timeout (0.23) // Output time
 #define CFL (0.45)// CFL condition
 #define m (2.)    // m=1 planar;m=2 cylindrical;m=3 spherical
@@ -25,6 +27,9 @@
 #define UR0 (-200.)
 #define PL0 (1.01325)
 #define PR0 (1.01325)
+#define DL1 (0.000129)
+#define UL1 (0.)
+#define PL1 (0.101325)
 #include"./inp.h"
 #include"./Riemann.h"
 #include"./VIPLimiter.h"
@@ -47,8 +52,9 @@ int main()
 	double PM,UM,DML,DMR,Smax_deltar,time=0.;//P_star, U_star, rho_starL, roh_starR, max wave speed
 	double dr,r;//initial d_raidus
 	dr=(double)Domlen/Ncell;
-	double dtheta;//initial d_angle
+	double dtheta,dtheta_plot;//initial d_angle
 	dtheta=0.5*pi/Tcell;
+	dtheta_plot=0.5*pi/Tcell_plot;
 	double RR[Md],DD[Md],UU[Md],PP[Md],CC[Md],GammaGamma[Md];//centroidal radius and variable in cells
 	double DdrL[Md],DdrR[Md],Ddr[Md];//distance from boundary to center in a cell
 	double Rb[Md],Lb[Md];//radius and length of outer cell boundary
@@ -81,12 +87,19 @@ int main()
 					PP[i]=PR;
 					GammaGamma[i]=GammaR;						
 				}
-			else
+			else if(RR[i]<=Diaph3)
 				{
 					DD[i]=DR;
 					UU[i]=UR;
 					PP[i]=PR;
 					GammaGamma[i]=GammaR;						
+				}
+			else
+				{
+					DD[i]=DL1;
+					UU[i]=UL1;
+					PP[i]=PL1;
+					GammaGamma[i]=GammaL;						
 				}										
 			CC[i]=sqrt(GammaGamma[i]*PP[i]/DD[i]);
 			E[i]=0.5*UU[i]*UU[i]+PP[i]/(DD[i]*(GammaGamma[i]-1.));
@@ -168,8 +181,8 @@ int main()
 					CL=sqrt(GammaL*PL/DL);
 					CR=sqrt(GammaR*PR/DR);
 						
-					//StarPU(PM,UM,DML,DMR,DL,DR,UL,UR,PL,PR,CL,CR,GammaL,GammaR);
-					Riemann_solver_exact(PM,UM,DML,DMR,DL,DR,UL,UR,PL,PR,CL,CR,GammaL,GammaR);					
+					StarPU(PM,UM,DML,DMR,DL,DR,UL,UR,PL,PR,CL,CR,GammaL,GammaR);
+					//Riemann_solver_exact(PM,UM,DML,DMR,DL,DR,UL,UR,PL,PR,CL,CR,GammaL,GammaR);					
 					//					if(i>=396 & i<=403)
 					//						printf("%lf,%lf,%lf,%lf,%d\n",PM,UM,DML,DMR,i);
 					
@@ -204,8 +217,8 @@ int main()
 					UL=UU[i]+(0.5*(Rb[i]+Rb[i+1])-RR[i])*DUL;
 					PL=PP[i]+(0.5*(Rb[i]+Rb[i+1])-RR[i])*DPL;
 					CL=sqrt(GammaL*PL/DL);
-					//StarPU(PM,UM,DML,DMR,DL,DL,UL,-UL,PL,PL,CL,CL,GammaL,GammaL);
-					Riemann_solver_exact(PM,UM,DML,DMR,DL,DL,-UL*sin(0.5*dtheta),UL*sin(0.5*dtheta),PL,PL,CL,CL,GammaL,GammaL);
+					StarPU(PM,UM,DML,DMR,DL,DL,-UL*sin(0.5*dtheta),UL*sin(0.5*dtheta),PL,PL,CL,CL,GammaL,GammaL);
+					//Riemann_solver_exact(PM,UM,DML,DMR,DL,DL,-UL*sin(0.5*dtheta),UL*sin(0.5*dtheta),PL,PL,CL,CL,GammaL,GammaL);
 					r=0.5*(Rb[i]+Rb[i+1])/cos(0.5*dtheta);
 					C_star=sqrt(GammaL*PM/DML);
 					AcousticSLagTan(DtP,DUL,DML,UL*cos(0.5*dtheta),C_star,r);					
@@ -230,8 +243,8 @@ int main()
 					PR=PP[i+1]-DdrR[i+1]*DPR;
 					CL=sqrt(GammaL*PL/DL);
 					CR=sqrt(GammaR*PR/DR);
-					//StarPU(PM,UM,DML,DMR,DL,DR,UL,UR,PL,PR,CL,CR,GammaL,GammaR);
-					Riemann_solver_exact(PM,UM,DML,DMR,DL,DR,UL,UR,PL,PR,CL,CR,GammaL,GammaR);
+					StarPU(PM,UM,DML,DMR,DL,DR,UL,UR,PL,PR,CL,CR,GammaL,GammaR);
+					//Riemann_solver_exact(PM,UM,DML,DMR,DL,DR,UL,UR,PL,PR,CL,CR,GammaL,GammaR);
 					r=Rb[i+1];
 					if((DL-DR)*(DL-DR)+(UL-UR)*(UL-UR)+(PL-PR)*(PL-PR)+(CL-CR)*(CL-CR)<EPS)//Acoustic case
 						{
@@ -340,27 +353,27 @@ int main()
 			if (time>plot_t)
 				{
 					for(i=0;i<=Ncell;i++)
-						for(j=0;j<=Tcell;j++)
+						for(j=0;j<=Tcell_plot;j++)
 							{
-								rb[i][j]=Rb[i]/cos(0.5*dtheta)*sin(j*dtheta);
-								zb[i][j]=Rb[i]/cos(0.5*dtheta)*cos(j*dtheta);
+								rb[i][j]=Rb[i]/cos(0.5*dtheta_plot)*sin(j*dtheta_plot);
+								zb[i][j]=Rb[i]/cos(0.5*dtheta_plot)*cos(j*dtheta_plot);
 							}
 					for(i=1;i<=Ncell;i++)
-						for(j=0;j<=Tcell;j++)
+						for(j=0;j<=Tcell_plot;j++)
 							{
 								DD2[i][j]=0.5*(DD[i-1]+DD[i]);
 								UUxi2[i][j]=0.5*(UU[i-1]+UU[i]);
 								PP2[i][j]=0.5*(PP[i-1]+PP[i]);
-								GammaGamma2[i][j]=0.5*(GammaGamma[i-1]+GammaGamma[i]);
+								GammaGamma2[i][j]=GammaGamma[i];
 							}
-					for(j=0;j<=Tcell;j++)
+					for(j=0;j<=Tcell_plot;j++)
 						{
 							DD2[0][j]=DD[0];
 							UUxi2[0][j]=UU[0];
 							PP2[0][j]=PP[0];
 							GammaGamma2[0][j]=GammaGamma[0];
 						}	
-					sprintf(file_data, "./data2d/FLU_VAR_%.5g.dat", plot_t);
+					sprintf(file_data, "../data_out/FLU_VAR_%.5g.dat", plot_t);
 					out=fopen(file_data,"w");
 					wrin2s(out,rb,zb,DD2,UUxi2,PP2,GammaGamma2,time);	
 					fclose(out);
@@ -371,7 +384,7 @@ int main()
 				break;
 		}//end k
 
-	outs=fopen("datas_fin.m","w");
+	outs=fopen("../datas_fin.m","w");
 	fprintf(outs,"RR=[");
 	Write(outs,RR,Ncell);
 	fprintf(outs,"DD=[");
@@ -383,27 +396,27 @@ int main()
 	fclose(outs);
 	
 	for(i=0;i<=Ncell;i++)
-		for(j=0;j<=Tcell;j++)
+		for(j=0;j<=Tcell_plot;j++)
 			{
-				rb[i][j]=Rb[i]/cos(0.5*dtheta)*sin(j*dtheta);
-				zb[i][j]=Rb[i]/cos(0.5*dtheta)*cos(j*dtheta);
+				rb[i][j]=Rb[i]/cos(0.5*dtheta_plot)*sin(j*dtheta_plot);
+				zb[i][j]=Rb[i]/cos(0.5*dtheta_plot)*cos(j*dtheta_plot);
 			}
 	for(i=1;i<=Ncell;i++)
-		for(j=0;j<=Tcell;j++)
+		for(j=0;j<=Tcell_plot;j++)
 			{
 				DD2[i][j]=0.5*(DD[i-1]+DD[i]);
 				UUxi2[i][j]=0.5*(UU[i-1]+UU[i]);
 				PP2[i][j]=0.5*(PP[i-1]+PP[i]);
 				GammaGamma2[i][j]=0.5*(GammaGamma[i-1]+GammaGamma[i]);
 			}
-	for(j=0;j<=Tcell;j++)
+	for(j=0;j<=Tcell_plot;j++)
 		{
 			DD2[0][j]=DD[0];
 			UUxi2[0][j]=UU[0];
 			PP2[0][j]=PP[0];
 			GammaGamma2[0][j]=GammaGamma[0];
 		}	
-	sprintf(file_data, "./data2d/FLU_VAR_%.5g.dat", time);
+	sprintf(file_data, "../data_out/FLU_VAR_%.5g.dat", time);
 	out=fopen(file_data,"w");
 	wrin2s(out,rb,zb,DD2,UUxi2,PP2,GammaGamma2,time);	
 	fclose(out);

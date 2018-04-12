@@ -7,10 +7,10 @@ Status wrin2s(FILE *out,double R[Md][Mt],double Z[Md][Mt],double D[Md][Mt],doubl
 {
 	fprintf(out,"Solution For Euler Equation\n");
 	fprintf(out,"variables=Z,R,D,U,P,Gamma\n");
-	fprintf(out,"zone I=%d,J=%d,F=POINT,SOLUTIONTIME=%lf\n",Tcell+1,Ncell+1,t);
+	fprintf(out,"zone I=%d,J=%d,F=POINT,SOLUTIONTIME=%lf\n",Tcell_plot+1,Ncell+1,t);
 	int it,jr;
 	for(jr=0;jr<=Ncell;jr++)
-			for(it=0;it<=Tcell;it++)
+			for(it=0;it<=Tcell_plot;it++)
 				fprintf(out,"%lf %lf %lf %lf %lf %lf\n",Z[jr][it],R[jr][it],D[jr][it],U[jr][it],P[jr][it],Gamma[jr][it]);
 	return OK;
 }
@@ -122,7 +122,7 @@ Status StarPU(double &P,double &U,double &DML,double &DMR,double DL,double DR,do
 // compute the solution for pressure and velocity in the star region
 {
 	double change,FL,FR,FLD,FRD,POLD,PSTART,TOLPRE=EPS,UDIFF;
-	int i,NRITER=500;
+	int i,NRITER=100;
 	GuessP(PSTART,DL,DR,UL,UR,PL,PR,CL,CR,GammaL,GammaR);
 	POLD=PSTART;
 	UDIFF=UR-UL;
