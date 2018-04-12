@@ -57,7 +57,7 @@ void useVIPLimiter(int neigh_cell_num, double** Vave, double* V0, double* Vp)
 			std::vector<double> new_node(2);
 			new_node[0] = Vave[e][0];
 			new_node[1] = Vave[e][1];
-
+			//CH 0->1->2 counterclockwise
 			if( area > 0 )
 				CH.push_back(new_node);
 			else
@@ -73,14 +73,7 @@ void useVIPLimiter(int neigh_cell_num, double** Vave, double* V0, double* Vp)
 	if(colinear) 
 	{
 		if ( insideSegment(CH[0][0], CH[0][1], CH[1][0], CH[1][1], V0[0], V0[1]) )
-		{						
-			area = getTriArea(CH[0][0], CH[0][1], CH[1][0], CH[1][1], Vp[0], Vp[1]);
-
-			if ( fabs(area) > EPS )
-			{
-				getPerpendFoot(CH[0][0],CH[0][1],CH[1][0],CH[1][1],Vp[0],Vp[1],Vp);
-			}
-
+		{
 			if ( obtuseAngle(CH[0][0],CH[0][1], CH[1][0],CH[1][1], Vp[0],Vp[1]) )
 			{
 				Vp[0] = Vave[0][0];
@@ -95,6 +88,13 @@ void useVIPLimiter(int neigh_cell_num, double** Vave, double* V0, double* Vp)
 			}
 			else
 			{
+				area = getTriArea(CH[0][0], CH[0][1], CH[1][0], CH[1][1], Vp[0], Vp[1]);
+
+				if ( fabs(area) > EPS )
+				{
+					getPerpendFoot(CH[0][0],CH[0][1],CH[1][0],CH[1][1],Vp[0],Vp[1],Vp);
+				}
+
 				return;	
 			}
 		}
@@ -110,7 +110,7 @@ void useVIPLimiter(int neigh_cell_num, double** Vave, double* V0, double* Vp)
 	if( !colinear && count < neigh_cell_num )
 	{
 		bool face0(false), face1(false), face2(false);
-
+		//Outward normal of CH
 		//face0: 1->2
 		double n0x =   CH[2][1]-CH[1][1];
 		double n0y = -(CH[2][0]-CH[1][0]);
@@ -124,13 +124,13 @@ void useVIPLimiter(int neigh_cell_num, double** Vave, double* V0, double* Vp)
 		double n2y = -(CH[1][0]-CH[0][0]);
 
 		//check the node v.s. face position
-		if ((Vave[count][0] - CH[1][0])*n0x + (Vave[count][1] - CH[1][1])*n0y > 0.0)
+		if ((Vave[count][0] - CH[1][0])*n0x + (Vave[count][1] - CH[1][1])*n0y > EPS)
 			face0 = true;
 
-		if ((Vave[count][0] - CH[2][0])*n1x + (Vave[count][1] - CH[2][1])*n1y > 0.0)
+		if ((Vave[count][0] - CH[2][0])*n1x + (Vave[count][1] - CH[2][1])*n1y > EPS)
 			face1 = true;
 
-		if ((Vave[count][0] - CH[0][0])*n1x + (Vave[count][1] - CH[0][1])*n1y > 0.0)
+		if ((Vave[count][0] - CH[0][0])*n1x + (Vave[count][1] - CH[0][1])*n1y > EPS)
 			face2 = true;
 
 		//there are seven possible cases
@@ -226,7 +226,7 @@ void getPerpendFoot(double x0, double y0, double x1, double y1, double xc, doubl
 
 bool obtuseAngle(double x0, double y0, double xa, double ya, double xb, double yb)
 {
-	if( (xa-x0)*(xb-x0) + (ya-y0)*(yb-y0) > 0.0 )
+	if( (xa-x0)*(xb-x0) + (ya-y0)*(yb-y0) > EPS )
 		return false;
 	else
 		return true;
@@ -267,13 +267,13 @@ bool insideTriCH(std::vector<std::vector<double> >& CH, bool flag, double* Vp)
 	double n2y = -(CH[1][0] - CH[0][0]);
 
 	//check the node v.s. face position
-	if ((Vp[0] - CH[1][0])*n0x + (Vp[1] - CH[1][1])*n0y > 0.0)
+	if ((Vp[0] - CH[1][0])*n0x + (Vp[1] - CH[1][1])*n0y > EPS)
 		face0 = true;
 
-	if ((Vp[0] - CH[2][0])*n1x + (Vp[1] - CH[2][1])*n1y > 0.0)
+	if ((Vp[0] - CH[2][0])*n1x + (Vp[1] - CH[2][1])*n1y > EPS)
 		face1 = true;
 
-	if ((Vp[0] - CH[0][0])*n2x + (Vp[1] - CH[0][1])*n2y > 0.0)
+	if ((Vp[0] - CH[0][0])*n2x + (Vp[1] - CH[0][1])*n2y > EPS)
 		face2 = true;
 
 	if (!flag)
@@ -371,16 +371,16 @@ bool insideQuadCH(std::vector<std::vector<double> >& CH, bool flag, double* Vp)
 	double n3y = -(CH[0][0] - CH[3][0]);
 
 	//check the node v.s. face position
-	if ((Vp[0] - CH[0][0])*n0x + (Vp[1] - CH[0][1])*n0y > 0.0)
+	if ((Vp[0] - CH[0][0])*n0x + (Vp[1] - CH[0][1])*n0y > EPS)
 		face0 = true;
 
-	if ((Vp[0] - CH[1][0])*n1x + (Vp[1] - CH[1][1])*n1y > 0.0)
+	if ((Vp[0] - CH[1][0])*n1x + (Vp[1] - CH[1][1])*n1y > EPS)
 		face1 = true;
 
-	if ((Vp[0] - CH[2][0])*n2x + (Vp[1] - CH[2][1])*n2y > 0.0)
+	if ((Vp[0] - CH[2][0])*n2x + (Vp[1] - CH[2][1])*n2y > EPS)
 		face2 = true;
 
-	if ((Vp[0] - CH[3][0])*n3x + (Vp[1] - CH[3][1])*n3y > 0.0)
+	if ((Vp[0] - CH[3][0])*n3x + (Vp[1] - CH[3][1])*n3y > EPS)
 		face3 = true;
 
 	if (!flag)
