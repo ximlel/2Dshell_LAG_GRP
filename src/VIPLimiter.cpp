@@ -1,14 +1,15 @@
 #include "VIPLimiter.h"
+#define EPS (1e-8)
 
 void useVIPLimiter(int neigh_cell_num, double** Vave, double* V0, double* Vp)
 {
 	bool colinear(true);
 	int node_num(0),count(0);
-	double eps(1.0e-12),area(0);
+	double area(0);
 	std::vector<std::vector<double> > CH(2, std::vector<double>(2));
 
 	//Temporally, we choose to do noting in these cases...
-	if(neigh_cell_num == 0 || neigh_cell_num == 1)
+	if(neigh_cell_num != 3 && neigh_cell_num != 4)
 		return;
 
 	//Set initial guess for the CH...
@@ -32,7 +33,7 @@ void useVIPLimiter(int neigh_cell_num, double** Vave, double* V0, double* Vp)
 	{
 		area = getTriArea(CH[0][0], CH[0][1], CH[1][0], CH[1][1], Vave[e][0], Vave[e][1]);
 
-		if( fabs(area) < eps ) //node[e] is colinear with node[0] and node[1]
+		if( fabs(area) < EPS ) //node[e] is colinear with node[0] and node[1]
 		{
 			if( Vave[e][0] > CH[0][0] )
 			{
@@ -72,7 +73,14 @@ void useVIPLimiter(int neigh_cell_num, double** Vave, double* V0, double* Vp)
 	if(colinear) 
 	{
 		if ( insideSegment(CH[0][0], CH[0][1], CH[1][0], CH[1][1], V0[0], V0[1]) )
-		{
+		{						
+			area = getTriArea(CH[0][0], CH[0][1], CH[1][0], CH[1][1], Vp[0], Vp[1]);
+
+			if ( fabs(area) > EPS )
+			{
+				getPerpendFoot(CH[0][0],CH[0][1],CH[1][0],CH[1][1],Vp[0],Vp[1],Vp);
+			}
+
 			if ( obtuseAngle(CH[0][0],CH[0][1], CH[1][0],CH[1][1], Vp[0],Vp[1]) )
 			{
 				Vp[0] = Vave[0][0];
@@ -87,13 +95,6 @@ void useVIPLimiter(int neigh_cell_num, double** Vave, double* V0, double* Vp)
 			}
 			else
 			{
-				area = getTriArea(CH[0][0], CH[0][1], CH[1][0], CH[1][1], Vp[0], Vp[1]);
-
-				if ( fabs(area) > eps )
-				{
-					getPerpendFoot(CH[0][0],CH[0][1],CH[1][0],CH[1][1],Vp[0],Vp[1],Vp);
-				}
-
 				return;	
 			}
 		}
@@ -123,13 +124,13 @@ void useVIPLimiter(int neigh_cell_num, double** Vave, double* V0, double* Vp)
 		double n2y = -(CH[1][0]-CH[0][0]);
 
 		//check the node v.s. face position
-		if ((Vave[count][0] - CH[1][0])*n0x + (Vave[count][1] - CH[1][1])*n0y > eps)
+		if ((Vave[count][0] - CH[1][0])*n0x + (Vave[count][1] - CH[1][1])*n0y > 0.0)
 			face0 = true;
 
-		if ((Vave[count][0] - CH[2][0])*n1x + (Vave[count][1] - CH[2][1])*n1y > eps)
+		if ((Vave[count][0] - CH[2][0])*n1x + (Vave[count][1] - CH[2][1])*n1y > 0.0)
 			face1 = true;
 
-		if ((Vave[count][0] - CH[0][0])*n1x + (Vave[count][1] - CH[0][1])*n1y > eps)
+		if ((Vave[count][0] - CH[0][0])*n1x + (Vave[count][1] - CH[0][1])*n1y > 0.0)
 			face2 = true;
 
 		//there are seven possible cases
@@ -225,9 +226,7 @@ void getPerpendFoot(double x0, double y0, double x1, double y1, double xc, doubl
 
 bool obtuseAngle(double x0, double y0, double xa, double ya, double xb, double yb)
 {
-	double eps(1.0e-12);
-
-	if( (xa-x0)*(xb-x0) + (ya-y0)*(yb-y0) > eps )
+	if( (xa-x0)*(xb-x0) + (ya-y0)*(yb-y0) > 0.0 )
 		return false;
 	else
 		return true;
@@ -236,11 +235,10 @@ bool obtuseAngle(double x0, double y0, double xa, double ya, double xb, double y
 bool insideSegment(double x0, double y0, double x1, double y1, double xp, double yp)
 {
 	double area(0);
-	double eps(1.0e-12);
 
 	area = getTriArea(x0, y0, x1, y1, xp, yp);
 
-	if ( fabs(area) > eps )
+	if ( fabs(area) > EPS )
 	{
 		return false;
 	}
@@ -254,7 +252,6 @@ bool insideSegment(double x0, double y0, double x1, double y1, double xp, double
 
 bool insideTriCH(std::vector<std::vector<double> >& CH, bool flag, double* Vp)
 {
-	double eps(1.0e-12);
 	bool face0(false), face1(false), face2(false);
 
 	//face0: 1->2
@@ -270,13 +267,13 @@ bool insideTriCH(std::vector<std::vector<double> >& CH, bool flag, double* Vp)
 	double n2y = -(CH[1][0] - CH[0][0]);
 
 	//check the node v.s. face position
-	if ((Vp[0] - CH[1][0])*n0x + (Vp[1] - CH[1][1])*n0y > eps)
+	if ((Vp[0] - CH[1][0])*n0x + (Vp[1] - CH[1][1])*n0y > 0.0)
 		face0 = true;
 
-	if ((Vp[0] - CH[2][0])*n1x + (Vp[1] - CH[2][1])*n1y > eps)
+	if ((Vp[0] - CH[2][0])*n1x + (Vp[1] - CH[2][1])*n1y > 0.0)
 		face1 = true;
 
-	if ((Vp[0] - CH[0][0])*n2x + (Vp[1] - CH[0][1])*n2y > eps)
+	if ((Vp[0] - CH[0][0])*n2x + (Vp[1] - CH[0][1])*n2y > 0.0)
 		face2 = true;
 
 	if (!flag)
@@ -355,7 +352,6 @@ bool insideTriCH(std::vector<std::vector<double> >& CH, bool flag, double* Vp)
 
 bool insideQuadCH(std::vector<std::vector<double> >& CH, bool flag, double* Vp)
 {
-	double eps(1.0e-12);
 	bool face0(false), face1(false), face2(false), face3(false);
 
 	//face0: 0->1
@@ -375,16 +371,16 @@ bool insideQuadCH(std::vector<std::vector<double> >& CH, bool flag, double* Vp)
 	double n3y = -(CH[0][0] - CH[3][0]);
 
 	//check the node v.s. face position
-	if ((Vp[0] - CH[0][0])*n0x + (Vp[1] - CH[0][1])*n0y > eps)
+	if ((Vp[0] - CH[0][0])*n0x + (Vp[1] - CH[0][1])*n0y > 0.0)
 		face0 = true;
 
-	if ((Vp[0] - CH[1][0])*n1x + (Vp[1] - CH[1][1])*n1y > eps)
+	if ((Vp[0] - CH[1][0])*n1x + (Vp[1] - CH[1][1])*n1y > 0.0)
 		face1 = true;
 
-	if ((Vp[0] - CH[2][0])*n2x + (Vp[1] - CH[2][1])*n2y > eps)
+	if ((Vp[0] - CH[2][0])*n2x + (Vp[1] - CH[2][1])*n2y > 0.0)
 		face2 = true;
 
-	if ((Vp[0] - CH[3][0])*n3x + (Vp[1] - CH[3][1])*n3y > eps)
+	if ((Vp[0] - CH[3][0])*n3x + (Vp[1] - CH[3][1])*n3y > 0.0)
 		face3 = true;
 
 	if (!flag)

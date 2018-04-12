@@ -1,6 +1,7 @@
-#include<stdio.h>
-#include<math.h>
-#include<malloc.h>
+#include <stdio.h>
+#include <math.h>
+#include <string.h>
+#include <sys/stat.h>
 #define sec (0.5) // sec=0 1st order godunov,sec=0.5 godunov MUSCL
 #define pi (4.*atan(1.0))
 #define EPS (1e-8)
@@ -30,9 +31,9 @@
 #define DL1 (0.000129)
 #define UL1 (0.)
 #define PL1 (0.101325)
-#include"./inp.h"
-#include"./Riemann.h"
-#include"./VIPLimiter.h"
+#include "./inp.h"
+#include "./Riemann.h"
+#include "./VIPLimiter.h"
 int main()
 {	//parameters
 	double GammaL=GAMMAL, GammaR=GAMMAR; 
@@ -63,6 +64,7 @@ int main()
 	//double Rb_side[Md],Lb_side[Md],Rbh_side[Md],Lbh_side[Md],Sh[Md];
 	double mass[Md],vol[Md];
 	FILE *out,*outs;
+	mkdir("../data_out/", S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
 	char file_data[FILENAME_MAX];
 	double plot_t=D_PLOT_T;
 	int i,j,k;

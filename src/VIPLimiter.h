@@ -1,5 +1,5 @@
 /*********************************************************************
-/* File name: VIPLimiter.hpp
+/* File name: VIPLimiter.h
 /* 
 /* Abstract: The subroutin implements the VIP limiter for simulations of 2D flows on structured grids.
 /*           Note, this is only a limiter to limit the velocity vector V=(u,v) for 2D flows. 
@@ -12,8 +12,8 @@
 /* Date: Apr 11, 2018
 /* Author: Jian Cheng @ IAPCM
 ***********************************************************************/
-#ifndef __VIPLIMITER__HPP__
-#define __VIPLIMITER__HPP__
+#ifndef __VIPLIMITER__H__
+#define __VIPLIMITER__H__
 #include <iostream>
 #include <algorithm>
 #include <vector>
