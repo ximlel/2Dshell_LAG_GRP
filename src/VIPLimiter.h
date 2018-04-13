@@ -23,7 +23,7 @@
  * Subroutine of using VIP limiter for 2D velocity vector
  * 
  * \param[in] neigh_cell_num: number of neighbor cells 
- *                            (Note: only face neighbor cells are used here, thus, 0=<neigh_cell_num<=4)
+ *                            (Note: only 2D face neighbor cells are used here, thus, 0=<neigh_cell_num<=4)
  *
  * \param[in] Vave: matrix for the average velocity vectors of neighbor cells
  *                  i.e. [u^0_ave,v^0_ave]
@@ -35,8 +35,10 @@
  *
  * \param[in|out] Vp: vector for the velocity of a given location in the target cell where VIP limiter needs to be applied
  *
+ * \param[out] : the limiting coefficient lambda ( in [0, 1] ) for gradient vector
+ *
  */
-void useVIPLimiter(int neigh_cell_num, double** Vave, double* V0, double* Vp);
+double useVIPLimiter(int neigh_cell_num, double** Vave, double* V0, double* Vp);
 
 ///////////////////////////////////////////////////
 //some subroutines called by useViPLimiter...
@@ -49,8 +51,14 @@ bool obtuseAngle(double x0, double y0, double xa, double ya, double xb, double y
 
 bool insideSegment(double x0, double y0, double x1, double y1, double xp, double yp);
 
-bool insideTriCH(std::vector<std::vector<double> >& CH, bool flag, double* V);
+double insectionPoint(double x0, double y0, double x1, double y1, double x2, double y2, double x3, double y3, double* Vp);
 
-bool insideQuadCH(std::vector<std::vector<double> >& CH, bool flag, double* V);
+bool insideTriCH(std::vector<std::vector<double> >& CH, bool flag, double* Vp);
+
+bool insideQuadCH(std::vector<std::vector<double> >& CH, bool flag, double* Vp);
+
+bool insideTriCH(std::vector<std::vector<double> >& CH, bool flag, double* V0, double* Vp, double& lambda);
+
+bool insideQuadCH(std::vector<std::vector<double> >& CH, bool flag, double* V0, double* Vp, double& lambda);
 ///////////////////////////////////////////////////
 #endif

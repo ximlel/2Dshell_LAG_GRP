@@ -37,7 +37,7 @@
 int main()
 {	//parameters
 	double GammaL=GAMMAL, GammaR=GAMMAR; 
-	double DL=DL0,DR=DR0,UL=UL0,UR=UR0,PL=PL0,PR=PR0;//D:Density;U:Velocity;P:Pressure
+	double DL=DL0,DR=DR0,UL=UL0,UR=UR0,VL,VR,PL=PL0,PR=PR0;//D:Density;U,V:Velocity;P:Pressure
 	double CL,CR;//Sound speed
 	CL=sqrt(GammaL*PL/DL);
 	CR=sqrt(GammaR*PR/DR);
@@ -145,7 +145,8 @@ int main()
 	Smax_deltar=(Smax_deltar>(fabs(UR)+CR)/dr?Smax_deltar:(fabs(UR)+CR)/dr);
 	dt=CFL/Smax_deltar;
 
-	double DmD[Md],DmU[Md],DmP[Md],slopeL,slopeR,DDL,DDR,DUL,DUR,DPL,DPR,C_star,DtU,DtP,DtDL,DtDR,TDSL,TDSR,DpsiL,DphiR,Us,Ps,Ds;//derivative
+	double DmD[Md],DmU[Md],DmP[Md],TmV[Md],slopeL,slopeR,DDL,DDR,DUL,DUR,DPL,DPR,TVL,TVR;//spacial derivative
+	double C_star,DtU,DtP,DtDL,DtDR,TDSL,TDSR,DpsiL,DphiR,Us,Ps,Ds;//GRP variables
 	double Umin[Md],Pmin[Md],DLmin[Md],DRmin[Md],sD,sU,sP,C_starL,C_starR,F2P[Md];
 	double rb[Md][Mt],zb[Md][Mt],DD2[Md][Mt],UUxi2[Md][Mt],PP2[Md][Mt],GammaGamma2[Md][Mt];
 	/*
@@ -161,8 +162,9 @@ int main()
 			DmD[i]=0.;
 			DmU[i]=0.;
 			DmP[i]=0.;
+			TmV[i]=0.;
 		}
-	for(k=1;k<=10000000000;k++)
+	for(k=1;k<=1e10;k++)
 		{		
 			for(i=0;i<Ncell;i++)
 				{
@@ -184,7 +186,7 @@ int main()
 					CR=sqrt(GammaR*PR/DR);
 						
 					StarPU(PM,UM,DML,DMR,DL,DR,UL,UR,PL,PR,CL,CR,GammaL,GammaR);
-					//Riemann_solver_exact(PM,UM,DML,DMR,DL,DR,UL,UR,PL,PR,CL,CR,GammaL,GammaR);					
+					//Riemann_solver_exact(PM,UM,DML,DMR,DL,DR,UL,UR,PL,PR,CL,CR,GammaL,GammaR);
 					//					if(i>=396 & i<=403)
 					//						printf("%lf,%lf,%lf,%lf,%d\n",PM,UM,DML,DMR,i);
 					
@@ -215,15 +217,17 @@ int main()
 					DDL=DmD[i];
 					DUL=DmU[i];
 					DPL=DmP[i];
+					TVL=TmV[i];
 					DL=DD[i]+(0.5*(Rb[i]+Rb[i+1])-RR[i])*DDL;
 					UL=UU[i]+(0.5*(Rb[i]+Rb[i+1])-RR[i])*DUL;
 					PL=PP[i]+(0.5*(Rb[i]+Rb[i+1])-RR[i])*DPL;
+					VL=-0.5*(Rb[i]+Rb[i+1])*sin(0.5*dtheta)*TVL;
 					CL=sqrt(GammaL*PL/DL);
-					StarPU(PM,UM,DML,DMR,DL,DL,-UL*sin(0.5*dtheta),UL*sin(0.5*dtheta),PL,PL,CL,CL,GammaL,GammaL);
+					StarPU(PM,UM,DML,DMR,DL,DL,-UL*sin(0.5*dtheta)-VL*cos(0.5*dtheta),UL*sin(0.5*dtheta)+VL*cos(0.5*dtheta),PL,PL,CL,CL,GammaL,GammaL);
 					//Riemann_solver_exact(PM,UM,DML,DMR,DL,DL,-UL*sin(0.5*dtheta),UL*sin(0.5*dtheta),PL,PL,CL,CL,GammaL,GammaL);
 					r=0.5*(Rb[i]+Rb[i+1])/cos(0.5*dtheta);
 					C_star=sqrt(GammaL*PM/DML);
-					AcousticSLagTan(DtP,DUL,DML,UL*cos(0.5*dtheta),C_star,r);					
+					AcousticSLagTan(DtP,DUL,DML,UL*cos(0.5*dtheta)-VL*sin(0.5*dtheta),C_star,r);					
 					F2P[i]=PM+dt*DtP;
 				}//end for 2 round
 			
@@ -333,7 +337,7 @@ int main()
 			DD[Ncell]=DD[Ncell-1];
 			UU[Ncell]=UU[Ncell-1];
 			PP[Ncell]=PP[Ncell-1];		   
-									
+			/*									
 			for(i=1;i<Ncell;i++)
 				{
 					sU=(Umin[i+1] -Umin[i]) /Ddr[i];
@@ -349,7 +353,7 @@ int main()
 			DmU[Ncell]=minmod2((DLmin[Ncell]-DD[Ncell-1])/dRc[Ncell],DmD[Ncell-1]);
 			DmP[Ncell]=minmod2((Umin[Ncell]-UU[Ncell-1]) /dRc[Ncell],DmU[Ncell-1]);
 			DmD[Ncell]=minmod2((Pmin[Ncell]-PP[Ncell-1]) /dRc[Ncell],DmP[Ncell-1]);
-
+			*/
 			time=time+dt;
 			printf("Time[%10d]=%e,dt=%e\n",k,time,dt);
 			if (time>plot_t)
