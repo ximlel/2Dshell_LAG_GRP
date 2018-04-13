@@ -1,7 +1,7 @@
 #include "VIPLimiter.h"
 #define EPS (1e-8)
 
-double useVIPLimiter(int neigh_cell_num, double** Vave, double* V0, double* Vp)
+double useVIPLimiter(int neigh_cell_num, double Vave[][2], double* V0, double* Vp)
 {
 	bool colinear(true);
 	int node_num(0),count(0);

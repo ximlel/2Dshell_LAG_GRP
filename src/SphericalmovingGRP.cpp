@@ -17,6 +17,7 @@
 #define Timeout (0.23) // Output time
 #define CFL (0.45)// CFL condition
 #define m (2.)    // m=1 planar;m=2 cylindrical;m=3 spherical
+#define VIP 1  // VIP=1, use VIP limiter; VIP=0, use minmod limiter
 #define Alpha (1.)  // GRP limiter parameter
 #define Epsilon (1.) // r_0=Epsilon*dr
 #define D_PLOT_T (0.001)
@@ -147,8 +148,9 @@ int main()
 
 	double DmD[Md],DmU[Md],DmP[Md],TmV[Md],slopeL,slopeR,DDL,DDR,DUL,DUR,DPL,DPR,TVL,TVR;//spacial derivative
 	double C_star,DtU,DtP,DtDL,DtDR,TDSL,TDSR,DpsiL,DphiR,Us,Ps,Ds;//GRP variables
-	double Umin[Md],Pmin[Md],DLmin[Md],DRmin[Md],sD,sU,sP,C_starL,C_starR,F2P[Md];
+	double Umin[Md],VLmin[Md],Pmin[Md],DLmin[Md],DRmin[Md],sD,sU,sP,sV,C_starL,C_starR,F2P[Md];
 	double rb[Md][Mt],zb[Md][Mt],DD2[Md][Mt],UUxi2[Md][Mt],PP2[Md][Mt],GammaGamma2[Md][Mt];
+	double VIP_lim, Vave[4][2], V0[2], Vp1[2], Vp2[2], Vp3[2];//VIP limiter
 	/*
 	  for(i=1;i<=Ncell;i++)
 	  {
@@ -227,8 +229,9 @@ int main()
 					//Riemann_solver_exact(PM,UM,DML,DMR,DL,DL,-UL*sin(0.5*dtheta),UL*sin(0.5*dtheta),PL,PL,CL,CL,GammaL,GammaL);
 					r=0.5*(Rb[i]+Rb[i+1])/cos(0.5*dtheta);
 					C_star=sqrt(GammaL*PM/DML);
-					AcousticSLagTan(DtP,DUL,DML,UL*cos(0.5*dtheta)-VL*sin(0.5*dtheta),C_star,r);					
+					AcousticSLagTan(DtP,DtU,DUL+TVL,DPL*cos(0.5*dtheta),DML,UL*cos(0.5*dtheta)-VL*sin(0.5*dtheta),C_star,r);
 					F2P[i]=PM+dt*DtP;
+					VLmin[i]=-(UL*cos(0.5*dtheta)-VL*sin(0.5*dtheta)+dt*DtU)*sin(0.5*dtheta);
 				}//end for 2 round
 			
 			for(i=0;i<Ncell;i++)
@@ -350,10 +353,103 @@ int main()
 			DmD[0]=minmod2((DLmin[1]-DD[0])/dRc[0],DmD[1]);
 			DmU[0]=minmod2((Umin[1]-UU[0]) /dRc[0],DmU[1]);
 			DmP[0]=minmod2((Pmin[1]-PP[0]) /dRc[0],DmP[1]);
-			DmU[Ncell]=minmod2((DLmin[Ncell]-DD[Ncell-1])/dRc[Ncell],DmD[Ncell-1]);
-			DmP[Ncell]=minmod2((Umin[Ncell]-UU[Ncell-1]) /dRc[Ncell],DmU[Ncell-1]);
-			DmD[Ncell]=minmod2((Pmin[Ncell]-PP[Ncell-1]) /dRc[Ncell],DmP[Ncell-1]);
+			DmD[Ncell]=minmod2((DLmin[Ncell]-DD[Ncell-1])/dRc[Ncell],DmD[Ncell-1]);
+			DmU[Ncell]=minmod2((Umin[Ncell]-UU[Ncell-1]) /dRc[Ncell],DmU[Ncell-1]);
+			DmP[Ncell]=minmod2((Pmin[Ncell]-PP[Ncell-1]) /dRc[Ncell],DmP[Ncell-1]);
 			*/
+			//VIP limiter
+			for(i=1;i<Ncell;i++)
+				{
+					sU=(Umin[i+1] -Umin[i]) /Ddr[i];
+					sP=(Pmin[i+1] -Pmin[i]) /Ddr[i];
+					sD=(DLmin[i+1]-DRmin[i])/Ddr[i];
+					sV=-VLmin[i]/(0.5*(Rb[i]+Rb[i+1])*sin(0.5*dtheta));
+					DmD[i]=minmod(Alpha*(DD[i]-DD[i-1])/2./DdrR[i],sD,Alpha*(DD[i+1]-DD[i])/2./DdrL[i]);
+					DmP[i]=minmod(Alpha*(PP[i]-PP[i-1])/2./DdrR[i],sP,Alpha*(PP[i+1]-PP[i])/2./DdrL[i]);
+					Vave[0][0] = UU[i+1];
+					Vave[0][1] = 0.;
+					Vave[1][0] = UU[i-1];
+					Vave[1][1] = 0.;
+					Vave[2][0] = UU[i]*cos(dtheta);
+					Vave[2][1] = UU[i]*sin(dtheta);
+					Vave[3][0] = UU[i]*cos(dtheta);
+					Vave[3][1] =-UU[i]*sin(dtheta);
+					V0[0] = UU[i];
+					V0[1] = 0.;
+					Vp1[0] = UU[i]+(0.5*(Rb[i]+Rb[i+1])-RR[i])*sU;
+					Vp1[1] =-0.5*(Rb[i]+Rb[i+1])*sin(0.5*dtheta)*sV;
+					Vp2[0] = UU[i]+DdrL[i]*sU;
+					Vp2[1] = 0.0;
+					Vp3[0] = UU[i]-DdrR[i]*sU;
+					Vp3[1] = 0.0;
+					VIP_lim = fmin(1.0,     useVIPLimiter(3, Vave, V0, Vp1));
+					VIP_lim = fmin(VIP_lim, useVIPLimiter(3, Vave, V0, Vp2));
+					VIP_lim = fmin(VIP_lim, useVIPLimiter(3, Vave, V0, Vp3));
+					DmU[i]=VIP_lim*sU;
+					TmV[i]=VIP_lim*sV;
+					if (!VIP)
+						{													
+							DmU[i]=minmod(Alpha*(UU[i]-UU[i-1])/2./DdrR[i],sU,Alpha*(UU[i+1]-UU[i])/2./DdrL[i]);
+							TmV[i]=minmod2(Alpha*(UU[i]*sin(dtheta))/2./(0.5*(Rb[i]+Rb[i+1])*sin(0.5*dtheta)),sV);
+						}
+				}
+			// i = 0
+			sU=(Umin[1]-UU[0]) /dRc[0];
+			sP=(Pmin[1]-PP[0]) /dRc[0];
+			sD=(DLmin[1]-DD[0])/dRc[0];
+			sV=-VLmin[i]/(0.5*(Rb[i]+Rb[i+1])*sin(0.5*dtheta));
+			DmD[0]=minmod2(sD,DmD[1]);
+			DmP[0]=minmod2(sP,DmP[1]);
+			Vave[0][0] = UU[1];
+			Vave[0][1] = 0.;
+			Vave[1][0] = UU[0]*cos(dtheta);
+			Vave[1][1] = UU[0]*sin(dtheta);
+			Vave[2][0] = UU[0]*cos(dtheta);
+			Vave[2][1] =-UU[0]*sin(dtheta);
+			V0[0] = UU[0];
+			V0[1] = 0.;
+			Vp1[0] = UU[0]+(0.5*Rb[1]-RR[0])*sU;
+			Vp1[1] =-0.5*Rb[1]*sin(0.5*dtheta)*sV;
+			Vp2[0] = UU[0]+DdrL[0]*sU;
+			Vp2[1] = 0.;
+			VIP_lim = fmin(1.0,     useVIPLimiter(3, Vave, V0, Vp1));
+			VIP_lim = fmin(VIP_lim, useVIPLimiter(3, Vave, V0, Vp2));
+			DmU[0]=VIP_lim*sU;
+			TmV[0]=VIP_lim*sV;
+			if (!VIP)
+				{									
+					DmU[0]=minmod2(sU,DmU[1]);
+					TmV[0]=minmod2(sV,TmV[1]);
+				}
+			// i = Ncell
+			sU=(Umin[Ncell]-UU[Ncell-1]) /dRc[Ncell];
+			sP=(Pmin[Ncell]-PP[Ncell-1]) /dRc[Ncell];
+			sD=(DLmin[Ncell]-DD[Ncell-1])/dRc[Ncell];
+			sV=-VLmin[i]/(0.5*(Rb[i]+Rb[i+1])*sin(0.5*dtheta));
+			DmD[Ncell]=minmod2(sD,DmD[Ncell-1]);
+			DmP[Ncell]=minmod2(sP,DmP[Ncell-1]);
+			Vave[0][0] = UU[Ncell-1];
+			Vave[0][1] = 0.;
+			Vave[1][0] = UU[Ncell]*cos(dtheta);
+			Vave[1][1] = UU[Ncell]*sin(dtheta);
+			Vave[2][0] = UU[Ncell]*cos(dtheta);
+			Vave[2][1] =-UU[Ncell]*sin(dtheta);
+			V0[0] = UU[Ncell];
+			V0[1] = 0.;
+			Vp1[0] = UU[Ncell]+(0.5*(Rb[Ncell]+Rb[Ncell+1])-RR[Ncell])*sU;
+			Vp1[1] =-0.5*(Rb[Ncell]+Rb[Ncell+1])*sin(0.5*dtheta)*sV;
+			Vp2[0] = UU[Ncell]-DdrR[Ncell]*sU;
+			Vp2[1] = 0.;
+			VIP_lim = fmin(1.0, useVIPLimiter(3, Vave, V0, Vp1));
+			VIP_lim = fmin(VIP_lim, useVIPLimiter(3, Vave, V0, Vp2));
+			DmU[Ncell]=VIP_lim*sU;
+			TmV[Ncell]=VIP_lim*sV;
+			if (!VIP)
+				{									
+					DmU[Ncell]=minmod2(sU,DmU[Ncell-1]);
+					TmV[Ncell]=minmod2(sV,TmV[Ncell-1]);
+				}
+			
 			time=time+dt;
 			printf("Time[%10d]=%e,dt=%e\n",k,time,dt);
 			if (time>plot_t)

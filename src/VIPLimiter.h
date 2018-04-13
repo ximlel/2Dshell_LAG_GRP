@@ -38,7 +38,7 @@
  * \param[out] : the limiting coefficient lambda ( in [0, 1] ) for gradient vector
  *
  */
-double useVIPLimiter(int neigh_cell_num, double** Vave, double* V0, double* Vp);
+double useVIPLimiter(int neigh_cell_num, double Vave[][2], double* V0, double* Vp);
 
 ///////////////////////////////////////////////////
 //some subroutines called by useViPLimiter...
