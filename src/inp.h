@@ -161,7 +161,7 @@ Status AcousticSLag(double &DtDL,double &DtDR,double &DtU,double &DtP,double DUL
 	DtDR=DtDL;
 	return OK;
 }
-Status AcousticSLagTan(double &DtP,double &DtU,double DU,double DP,double D,double U,double C_star,double r)
+Status AcousticSLagTangent(double &DtP,double &DtU,double DU,double DP,double D,double U,double C_star,double r)
 //GRP solver for tangential case. Lagrangian version(moving mesh) for cylindrical case
 {
 	DtP= -D*C_star*C_star*(DU+(m-1)*U/r);
