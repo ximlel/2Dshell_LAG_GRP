@@ -17,7 +17,7 @@
 #define Timeout (0.23) // Output time
 #define CFL (0.45)// CFL condition
 #define m (2.)    // m=1 planar;m=2 cylindrical;m=3 spherical
-#define VIP 1  // VIP=1, use VIP limiter; VIP=0, use minmod limiter
+#define VIP 0  // VIP=1, use VIP limiter; VIP=0, use minmod limiter
 #define Alpha (1.9)  // GRP limiter parameter
 #define Epsilon (1.) // r_0=Epsilon*dr
 #define D_PLOT_T (0.005)
@@ -151,6 +151,7 @@ int main()
 	double Umin[Md],VLmin[Md],Pmin[Md],DLmin[Md],DRmin[Md],sD,sU,sP,sV,C_starL,C_starR,F2P[Md];
 	double rb[Md][Mt],zb[Md][Mt],DD2[Md][Mt],UUxi2[Md][Mt],PP2[Md][Mt],GammaGamma2[Md][Mt];
 	double VIP_lim, Vave[4][2], V0[2], Vp1[2], Vp2[2], Vp3[2];//VIP limiter
+	int wrong_idx = 0;
 	/*
 	  for(i=1;i<=Ncell;i++)
 	  {
@@ -329,17 +330,19 @@ int main()
 					if(isnan(PP[i])||isnan(UU[i])||isnan(DD[i]))
 						{									
 							printf("variable is nan,error!\n");
-							return 0;
+							wrong_idx = 1;
 						}
 					else if (PP[i]<0)
 						{									
 							printf("p<0,error!\n");
-							return 0;
+							wrong_idx = 1;
 						}
 				}
 			DD[Ncell]=DD[Ncell-1];
 			UU[Ncell]=UU[Ncell-1];
-			PP[Ncell]=PP[Ncell-1];		   
+			PP[Ncell]=PP[Ncell-1];
+			if (wrong_idx)
+				break;
 			/*									
 			for(i=1;i<Ncell;i++)
 				{
@@ -468,12 +471,16 @@ int main()
 	outs=fopen("../datas_fin.m","w");
 	fprintf(outs,"RR=[");
 	Write(outs,RR,Ncell);
+	fprintf(outs,"];\n");
 	fprintf(outs,"DD=[");
 	Write(outs,DD,Ncell);
+	fprintf(outs,"];\n");
 	fprintf(outs,"UU=[");
 	Write(outs,UU,Ncell);
+	fprintf(outs,"];\n");
 	fprintf(outs,"PP=[");
 	Write(outs,PP,Ncell);
+	fprintf(outs,"];\n");
 	fclose(outs);
 	
 	for(i=0;i<=Ncell;i++)

@@ -19,10 +19,7 @@ Status Write(FILE *out,double XX[Md],int N)// write data in file
 	int i;
 	for(i=0;i<N;i++)
 		{
-			if(i<N)
-				fprintf(out,"%lf ",XX[i]);
-			else
-				fprintf(out,"%lf];\n",XX[i]);
+			fprintf(out,"%lf ",XX[i]);
 		}
 	return OK;
 }
