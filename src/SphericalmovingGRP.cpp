@@ -43,7 +43,7 @@ int main()
 	//double Rb_side[Md],Lb_side[Md],Rbh_side[Md],Lbh_side[Md],Sh[Md];
 	double mass[Md],vol[Md];
 	FILE *out,*outs;
-	mkdir("../data_out/", S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+	mkdir(DATAOUT, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
 	char file_data[FILENAME_MAX];
 	double plot_t=D_PLOT_T;
 	int i,j,k;
@@ -448,7 +448,7 @@ int main()
 							PP2[0][j]=PP[0];
 							GammaGamma2[0][j]=GammaGamma[0];
 						}	
-					sprintf(file_data, "../data_out/FLU_VAR_%.5g.dat", plot_t);
+					sprintf(file_data, "%s/FLU_VAR_%.5g.dat", DATAOUT,plot_t);
 					out=fopen(file_data,"w");
 					wrin2s(out,rb,zb,DD2,UUxi2,PP2,GammaGamma2,time);	
 					fclose(out);
@@ -495,7 +495,7 @@ int main()
 			PP2[0][j]=PP[0];
 			GammaGamma2[0][j]=GammaGamma[0];
 		}	
-	sprintf(file_data, "../data_out/FLU_VAR_%.5g.dat", time);
+	sprintf(file_data, "%s/FLU_VAR_%.5g.dat", DATAOUT, time);
 	out=fopen(file_data,"w");
 	wrin2s(out,rb,zb,DD2,UUxi2,PP2,GammaGamma2,time);	
 	fclose(out);

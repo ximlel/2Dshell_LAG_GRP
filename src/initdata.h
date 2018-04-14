@@ -1,6 +1,7 @@
 #ifndef _INITDTATA_H
 #define _INITDTATA_H
 
+
 #define Ncell 3000 // Number of computing cells in r direction
 #define Tcell 400  // Number of computing cells in theta direction
 #define Diaph1 (10.)
@@ -12,8 +13,8 @@
 #define Timeout (0.23) // Output time
 #define D_PLOT_T (0.001) // Output time interval
 
-#define Alpha (1.) // GRP limiter parameter
-#define LIMITER_CONF 1  /* LIMITER<0, add VIP limiter; LIMITER>0, only minmod limiter;
+#define Alpha (1.99) // GRP limiter parameter
+#define LIMITER_CONF 2  /* LIMITER<0, add VIP limiter; LIMITER>0, only minmod limiter;
 			   abs(LIMITER)=1, original minmod limiter; abs(LIMITER)=2, VIP-like minmod limiter */
 
 #define GAMMAL (1.4)
@@ -27,5 +28,8 @@
 #define DL1 (0.000129)
 #define UL1 (0.)
 #define PL1 (0.101325)
+
+#define DATAOUT "../data_out" //data out folder
+
 
 #endif
