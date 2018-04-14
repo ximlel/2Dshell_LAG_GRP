@@ -2,25 +2,24 @@
 #include <math.h>
 #include <string.h>
 #include <sys/stat.h>
-#define sec (0.5) // sec=0 1st order godunov,sec=0.5 godunov MUSCL
 #define pi (4.*atan(1.0))
 #define EPS (1e-8)
-#define Md 3005 // max vector dimension
-#define Mt 405  // max theta dimension
+#define CFL (0.45) // CFL condition
 #define Ncell 3000 // Number of computing cells in r direction
 #define Tcell 400  // Number of computing cells in theta direction
-#define Tcell_plot 100
+#define Md Ncell+5 // max vector dimension
+#define Mt Tcell+5  // max theta dimension
 #define Diaph1 (10.)
 #define Diaph2 (10.2)
 #define Diaph3 (10.25) // Domain length
 #define Domlen (15) // Domain length
+#define m (2.)    // m=1 planar; m=2 cylindrical; m=3 spherical
+#define Epsilon (1.) // r_0=Epsilon*dr
+#define Tcell_plot 100 // Output zoom
 #define Timeout (0.23) // Output time
-#define CFL (0.45)// CFL condition
-#define m (2.)    // m=1 planar;m=2 cylindrical;m=3 spherical
+#define D_PLOT_T (0.001) // Output time interval
 #define VIP 1  // VIP=1, use VIP limiter; VIP=0, use minmod limiter
 #define Alpha (1.9)  // GRP limiter parameter
-#define Epsilon (1.) // r_0=Epsilon*dr
-#define D_PLOT_T (0.001)
 #define GAMMAL (1.4)
 #define GAMMAR (3.0) // Ratio of special heats Gamma=1.4 or 3.0
 #define DL0 (0.00129)

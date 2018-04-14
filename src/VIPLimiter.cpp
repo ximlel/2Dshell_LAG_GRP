@@ -555,15 +555,15 @@ bool insideTriCH(std::vector<std::vector<double> >& CH, bool flag, double* V0, d
 
 		double len = sqrt( (Vp[0]-V0[0])*(Vp[0]-V0[0]) + (Vp[1]-V0[1])*(Vp[1]-V0[1]) );
 
-		if( area0 > EPS && area1 < EPS )     //insect with face0
+		if( area0 > EPS && area1 < EPS )     //insect with face2
 		{
 			lambda = insectionPoint(V0[0],V0[1], Vp[0],Vp[1], CH[0][0],CH[0][1], CH[1][0],CH[1][1], Vp);
 		}
-		else if( area1 > EPS && area2 < EPS ) //insect with face1
+		else if( area1 > EPS && area2 < EPS ) //insect with face0
 		{
 			lambda = insectionPoint(V0[0],V0[1], Vp[0],Vp[1], CH[1][0],CH[1][1], CH[2][0],CH[2][1], Vp);
 		}
-		else if( area2 > EPS && area0 < EPS ) //insect with face2
+		else if( area2 > EPS && area0 < EPS ) //insect with face1
 		{
 			lambda = insectionPoint(V0[0],V0[1], Vp[0],Vp[1], CH[2][0],CH[2][1], CH[0][0],CH[0][1], Vp);
 		}
@@ -591,7 +591,8 @@ bool insideTriCH(std::vector<std::vector<double> >& CH, bool flag, double* V0, d
 		else
 		{
 			std::cout<<"Error: it should not be here for quadrilateral CH..."<<std::endl;
-			exit(1);
+			lambda = 1.0;
+			//exit(1);
 		}
 
 		return false;
@@ -702,7 +703,8 @@ bool insideQuadCH(std::vector<std::vector<double> >& CH, bool flag, double* V0, 
 		else
 		{
 			std::cout<<"Error: it should not be here for triangualr CH..."<<std::endl;
-			exit(1);
+			lambda = 1.0;
+			//exit(1);
 		}
 
 		return false;
