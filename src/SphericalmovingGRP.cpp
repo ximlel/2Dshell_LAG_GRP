@@ -17,10 +17,10 @@
 #define Timeout (0.23) // Output time
 #define CFL (0.45)// CFL condition
 #define m (2.)    // m=1 planar;m=2 cylindrical;m=3 spherical
-#define VIP 0  // VIP=1, use VIP limiter; VIP=0, use minmod limiter
+#define VIP 1  // VIP=1, use VIP limiter; VIP=0, use minmod limiter
 #define Alpha (1.9)  // GRP limiter parameter
 #define Epsilon (1.) // r_0=Epsilon*dr
-#define D_PLOT_T (0.005)
+#define D_PLOT_T (0.001)
 #define GAMMAL (1.4)
 #define GAMMAR (3.0) // Ratio of special heats Gamma=1.4 or 3.0
 #define DL0 (0.00129)
