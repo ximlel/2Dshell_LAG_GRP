@@ -3,11 +3,10 @@
 #include <string.h>
 #include <sys/stat.h>
 #define pi (4.*atan(1.0))
-#define EPS (1e-8)
 #define CFL (0.45) // CFL condition
 #define m (2.)    // m=1 planar; m=2 cylindrical; m=3 spherical
 #define Epsilon (1.) // r_0=Epsilon*dr
-#include "./initdata.h"
+#include "./initdata2.h"
 #define Md Ncell+5 // max vector dimension
 #define Mt Tcell+5  // max theta dimension
 #include "./inp.h"

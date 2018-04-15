@@ -1,8 +1,11 @@
+#include "./initdata.h"
 #include "VIPLimiter.h"
-#define EPS (1e-8)
 
 double useVIPLimiter(int neigh_cell_num, double Vave[][2], double* V0, double* Vp)
 {
+	Vp[0] = V0[0]+(Vp[0]-V0[0])*2.0/Alpha;
+	Vp[1] = V0[1]+(Vp[0]-V0[0])*2.0/Alpha;
+
 	bool colinear(true);
 	int node_num(0),count(0);
 	double area(0);
@@ -80,7 +83,7 @@ double useVIPLimiter(int neigh_cell_num, double Vave[][2], double* V0, double* V
 			{
 				Vp[0] = V0[0];
 				Vp[1] = V0[1];
-				return 0;
+				return 0.0;
 			}
 			else
 			{

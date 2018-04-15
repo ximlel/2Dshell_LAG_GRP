@@ -29,6 +29,7 @@
 #define UL1 (0.)
 #define PL1 (0.101325)
 
+#define EPS (1e-8)
 #define DATAOUT "../data_out" //data out folder
 
 
