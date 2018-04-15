@@ -1,6 +1,6 @@
 #!/bin/bash
 
-ulimit -s  102400
+ulimit -s  10240000
 
 #gcc -c ./inp.c -I ./
 #ar crv inp.a inp.o

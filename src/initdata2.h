@@ -10,8 +10,8 @@
 #define Domlen (15) // Domain length
 
 #define Tcell_plot 100 // Output zoom
-#define Timeout (0.23) // Output time
-#define D_PLOT_T (0.001) // Output time interval
+#define Timeout (0.8) // Output time
+#define D_PLOT_T (0.01) // Output time interval
 
 #define Alpha (1.999) // GRP limiter parameter
 #define LIMITER_CONF 2  /* LIMITER<0, add VIP limiter; LIMITER>0, only minmod limiter;
@@ -19,17 +19,17 @@
 
 #define GAMMAL (1.4)
 #define GAMMAR (3.0) // Ratio of special heats Gamma=1.4 or 3.0
-#define DL0 (0.00129)
+#define DL0 (0.129)
 #define DR0 (19.237)
 #define UL0 (0.)
-#define UR0 (-200.)
+#define UR0 (-10.)
 #define PL0 (1.01325)
 #define PR0 (1.01325)
 #define DL1 (0.000129)
 #define UL1 (0.)
 #define PL1 (0.101325)
 
-#define DATAOUT "../data_out" //data out folder
+#define DATAOUT "../data_out2" //data out folder
 
 
 #endif
