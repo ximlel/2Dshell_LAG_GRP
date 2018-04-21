@@ -1,10 +1,21 @@
 #include <stdio.h>
 #include <math.h>
 #include <string.h>
+#ifdef _WIN32
+#include <direct.h>
+#elif __linux__
 #include <sys/stat.h>
+#endif
+#ifdef _WIN32
+#define MKDIR(a) _mkdir((a))
+#define ISNAN(a) _isnan((a))
+#elif __linux__
+#define MKDIR(a) mkdir((a),S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH)
+#define ISNAN(a) isnan((a))
+#endif
 #define pi (4.*atan(1.0))
 #define CFL (0.45) // CFL condition
-#define m (2.)    // m=1 planar; m=2 cylindrical; m=3 spherical
+#define M (2.)    // m=1 planar; m=2 cylindrical; m=3 spherical
 #define Epsilon (1.) // r_0=Epsilon*dr
 #include "./initdata2.h"
 #define Md Ncell+5 // max vector dimension
@@ -14,7 +25,7 @@
 #include "./VIPLimiter.h"
 int main()
 {	//parameters
-	double GammaL=GAMMAL, GammaR=GAMMAR; 
+	double GammaL=GAMMAL, GammaR=GAMMAR;
 	double DL=DL0,DR=DR0,UL=UL0,UR=UR0,VL,VR,PL=PL0,PR=PR0;//D:Density;U,V:Velocity;P:Pressure
 	double CL,CR;//Sound speed
 	CL=sqrt(GammaL*PL/DL);
@@ -25,30 +36,30 @@ int main()
 			return 0;
 		}
 	double dt; //delta_t
-	double F2[Md],F3[Md],E[Md],Speed1[Md],Speed2[Md];
+	static double F2[Md],F3[Md],E[Md],Speed1[Md],Speed2[Md];
 	//flux, conservative variable and wave speed
-	double dRc[Md];//(derivative)centers distance
+	static double dRc[Md];//(derivative)centers distance
 	double PM,UM,DML,DMR,Smax_deltar,time=0.;//P_star, U_star, rho_starL, roh_starR, max wave speed
 	double dr,r;//initial d_raidus
 	dr=(double)Domlen/Ncell;
 	double dtheta,dtheta_plot;//initial d_angle
 	dtheta=0.5*pi/Tcell;
 	dtheta_plot=0.5*pi/Tcell_plot;
-	double RR[Md],DD[Md],UU[Md],PP[Md],CC[Md],GammaGamma[Md];//centroidal radius and variable in cells
-	double DdrL[Md],DdrR[Md],Ddr[Md];//distance from boundary to center in a cell
-	double Rb[Md],Lb[Md];//radius and length of outer cell boundary
-	double Rbh[Md],Lbh[Md];//h: half time step
+	static double RR[Md],DD[Md],UU[Md],PP[Md],CC[Md],GammaGamma[Md];//centroidal radius and variable in cells
+	static double DdrL[Md],DdrR[Md],Ddr[Md];//distance from boundary to center in a cell
+	static double Rb[Md],Lb[Md];//radius and length of outer cell boundary
+	static double Rbh[Md],Lbh[Md];//h: half time step
 	double Rb_NStep,Lb_NStep;
-	//double Rb_side[Md],Lb_side[Md],Rbh_side[Md],Lbh_side[Md],Sh[Md];
-	double mass[Md],vol[Md];
+	//static double Rb_side[Md],Lb_side[Md],Rbh_side[Md],Lbh_side[Md],Sh[Md];
+	static double mass[Md],vol[Md];
 	FILE *out,*outs;
-	mkdir(DATAOUT, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+	MKDIR(DATAOUT);
 	char file_data[FILENAME_MAX];
 	double plot_t=D_PLOT_T;
 	int i,j,k;
-	
+
 	for(i=1;i<=Ncell;i++)//center cell is cell 0
-		{			
+		{
 			Rb[i]=(Epsilon+i-1.)*dr*cos(0.5*dtheta);//outer cell boundary
 			Lb[i]=2.*(Epsilon+i-1.)*dr*sin(0.5*dtheta);
 			RR[i]=(Epsilon+i-(3.*Epsilon+3.*i-2.)/(6.*Epsilon+6.*i-3.))*dr*cos(0.5*dtheta);
@@ -65,22 +76,22 @@ int main()
 					DD[i]=DR;
 					UU[i]=UL;
 					PP[i]=PR;
-					GammaGamma[i]=GammaR;						
+					GammaGamma[i]=GammaR;
 				}
 			else if(RR[i]<=Diaph3)
 				{
 					DD[i]=DR;
 					UU[i]=UR;
 					PP[i]=PR;
-					GammaGamma[i]=GammaR;						
+					GammaGamma[i]=GammaR;
 				}
 			else
 				{
 					DD[i]=DL1;
 					UU[i]=UL1;
 					PP[i]=PL1;
-					GammaGamma[i]=GammaL;						
-				}										
+					GammaGamma[i]=GammaL;
+				}
 			CC[i]=sqrt(GammaGamma[i]*PP[i]/DD[i]);
 			E[i]=0.5*UU[i]*UU[i]+PP[i]/(DD[i]*(GammaGamma[i]-1.));
 		}//initial value
@@ -88,7 +99,7 @@ int main()
 	Lb[0]=0.;
 	RR[0]=(2./3.*Epsilon)*dr*cos(0.5*dtheta);
 	DD[0]=DD[1];
-	UU[0]=0.;	
+	UU[0]=0.;
 	PP[0]=PP[1];
 	GammaGamma[0]=GammaGamma[1];
 	CC[0]=sqrt(GammaGamma[0]*PP[0]/DD[0]);
@@ -117,16 +128,19 @@ int main()
 	*/
 	Rbh[0]=0.;
 	Lbh[0]=0.;
-	
+
 	Smax_deltar=0.;
 	Smax_deltar=(Smax_deltar>(fabs(UL)+CL)/dr?Smax_deltar:(fabs(UL)+CL)/dr);
 	Smax_deltar=(Smax_deltar>(fabs(UR)+CR)/dr?Smax_deltar:(fabs(UR)+CR)/dr);
 	dt=CFL/Smax_deltar;
 
-	double DmD[Md],DmU[Md],DmP[Md],TmV[Md],slopeL,slopeR,DDL,DDR,DUL,DUR,DPL,DPR,TVL,TVR;//spacial derivative
+	static double DmD[Md],DmU[Md],DmP[Md],TmV[Md];
+	double slopeL,slopeR,DDL,DDR,DUL,DUR,DPL,DPR,TVL,TVR;//spacial derivative
 	double C_star,DtU,DtP,DtDL,DtDR,TDSL,TDSR,DpsiL,DphiR,Us,Ps,Ds;//GRP variables
-	double Umin[Md],VLmin[Md],Pmin[Md],DLmin[Md],DRmin[Md],sD,sU,sP,sV,C_starL,C_starR,F2P[Md];
-	double rb[Md][Mt],zb[Md][Mt],DD2[Md][Mt],UUxi2[Md][Mt],PP2[Md][Mt],GammaGamma2[Md][Mt];
+	static double Umin[Md],VLmin[Md],Pmin[Md],DLmin[Md],DRmin[Md];
+	double sD,sU,sP,sV,C_starL,C_starR;
+	static double F2P[Md];
+	static double rb[Md][Mt],zb[Md][Mt],DD2[Md][Mt],UUxi2[Md][Mt],PP2[Md][Mt],GammaGamma2[Md][Mt];
 	double VIP_lim, Vave[4][2], V0[2], Vp1[2], Vp2[2], Vp3[2];//VIP limiter
 	int wrong_idx = 0;
 	/*
@@ -145,7 +159,7 @@ int main()
 			TmV[i]=0.;
 		}
 	for(k=1;k<=1e10;k++)
-		{		
+		{
 			for(i=0;i<Ncell;i++)
 				{
 					GammaL = GammaGamma[i];
@@ -164,12 +178,12 @@ int main()
 					PR=PP[i+1]-DdrR[i+1]*DPR;
 					CL=sqrt(GammaL*PL/DL);
 					CR=sqrt(GammaR*PR/DR);
-						
+
 					StarPU(PM,UM,DML,DMR,DL,DR,UL,UR,PL,PR,CL,CR,GammaL,GammaR);
 					//Riemann_solver_exact(PM,UM,DML,DMR,DL,DR,UL,UR,PL,PR,CL,CR,GammaL,GammaR);
 					//					if(i>=396 & i<=403)
 					//						printf("%lf,%lf,%lf,%lf,%d\n",PM,UM,DML,DMR,i);
-					
+
 					if(PM>PL)//left shock
 						Speed1[i+1]=UL-CL*sqrt(PM/PL*(GammaL+1)/(2.*GammaL)+(GammaL-1.)/(2.*GammaL));
 					else//left fan
@@ -211,7 +225,7 @@ int main()
 					F2P[i]=PM+dt*DtP;
 					VLmin[i]=(UL*cos(0.5*dtheta)+VL*sin(0.5*dtheta)+dt*DtU)*sin(0.5*dtheta);
 				}//end for 2 round
-			
+
 			for(i=0;i<Ncell;i++)
 				{
 					GammaL = GammaGamma[i];
@@ -244,17 +258,17 @@ int main()
 							TDSR=-CR*CR/(DR*(GammaR-1.))*DDR+1./(DR*(GammaR-1.))*DPR;
 							DpsiL=DUL+GammaL/((GammaL-1.)*CL*DL)*DPL-CL/(DL*(GammaL-1.))*DDL;
 							DphiR=DUR-GammaR/((GammaR-1.)*CR*DR)*DPR+CR/(DR*(GammaR-1.))*DDR;
-							GRPsolverSLag(DtDL,DtDR,DtU,DtP,UM,PM,DL,DR,UL,UR,PL,PR,DDL,DDR,DUL,DUR,DPL,DPR,TDSL,TDSR,DpsiL,DphiR,r,GammaL,GammaR); 
+							GRPsolverSLag(DtDL,DtDR,DtU,DtP,UM,PM,DL,DR,UL,UR,PL,PR,DDL,DDR,DUL,DUR,DPL,DPR,TDSL,TDSR,DpsiL,DphiR,r,GammaL,GammaR);
 						}
 					Us=UM+0.5*dt*DtU;
 					Ps=PM+0.5*dt*DtP;
 					F2[i+1]=Ps;
-					F3[i+1]=Ps*Us;			
+					F3[i+1]=Ps*Us;
 					Umin[i+1] =UM +dt*DtU;
 					Pmin[i+1] =PM +dt*DtP;
 					DLmin[i+1]=DML+dt*DtDL;
 					DRmin[i+1]=DMR+dt*DtDR;
-					
+
 					Rb_NStep=Rb[i+1]+Us*dt;
 					Lb_NStep=2.*Rb_NStep*sin(0.5*dtheta)/cos(0.5*dtheta);
 					Lbh[i+1]=0.5*(Lb[i+1]+Lb_NStep);
@@ -269,7 +283,7 @@ int main()
 					  Lbh_side[i]=0.5*(Lbh[i+1]-Lbh[i])/sin(0.5*dtheta);
 					  Sh[i]=Rbh[i+1]*Lbh[i+1]-Rbh[i]*Lbh[i]-sin(dtheta)*Rbh_side[i]*Lbh_side[i];
 					*/
-				}//end for 3 round			
+				}//end for 3 round
 			for(i=1;i<Ncell;i++)
 				{
 					DdrL[i]=Rb[i+1]-RR[i];
@@ -279,7 +293,7 @@ int main()
 					vol[i] =RR[i]*0.5*(Lb[i]+Lb[i+1])*(Rb[i+1]-Rb[i]);//m=2.
 					DD[i]=mass[i]/vol[i];
 					if(Ddr[i]<0.)
-						{									
+						{
 							printf("deltar<0,error!\n");
 							return 0;
 						}
@@ -292,25 +306,25 @@ int main()
 			DdrR[Ncell]=DdrR[Ncell-1];
 			Ddr[Ncell] =Ddr[Ncell-1];
 			dRc[Ncell] =DdrL[Ncell-1];//boundary condition
-			
+
 			for(i=1;i<Ncell;i++)//m=2
 				{
 					UU[i]=UU[i]-dt/mass[i]*((F2[i+1]-F2P[i])*Rbh[i+1]*Lbh[i+1]-(F2[i]-F2P[i])*Rbh[i]*Lbh[i]);
 					E[i] =E[i] -dt/mass[i]*(F3[i+1]*Rbh[i+1]*Lbh[i+1]-F3[i]*Rbh[i]*Lbh[i]);
 				}
 			UU[0]=0.;
-			E[0]=E[0]-dt/mass[0]*(F3[1]*Rbh[1]*Lbh[1]);			
+			E[0]=E[0]-dt/mass[0]*(F3[1]*Rbh[1]*Lbh[1]);
 			//Decoding to get physical variables
 			for(i=0;i<Ncell;i++)
-				{				   				
+				{
 					PP[i]=(E[i]-0.5*UU[i]*UU[i])*(GammaGamma[i]-1.)*DD[i];
-					if(isnan(PP[i])||isnan(UU[i])||isnan(DD[i]))
-						{									
+					if(ISNAN(PP[i])||ISNAN(UU[i])||ISNAN(DD[i]))
+						{
 							printf("variable is nan,error!\n");
 							wrong_idx = 1;
 						}
 					else if (PP[i]<0)
-						{									
+						{
 							printf("p<0,error!\n");
 							wrong_idx = 1;
 						}
@@ -320,7 +334,7 @@ int main()
 			PP[Ncell]=PP[Ncell-1];
 			if (wrong_idx)
 				break;
-			/*									
+			/*
 			for(i=1;i<Ncell;i++)
 				{
 					sU=(Umin[i+1] -Umin[i]) /Ddr[i];
@@ -381,7 +395,7 @@ int main()
 							if(LIMITER_CONF>0)
 								DmU[i]=minmod(Alpha*(UU[i]-UU[i-1])/2./DdrR[i],sU,Alpha*(UU[i+1]-UU[i])/2./DdrL[i]);
 						}
-					if (LIMITER_CONF>0)						
+					if (LIMITER_CONF>0)
 						TmV[i]=minmod2(Alpha*(UU[i]*sin(dtheta))/2./(0.5*(Rb[i]+Rb[i+1])*tan(0.5*dtheta)),sV);
 				}
 			// i = 0
@@ -410,7 +424,7 @@ int main()
 			DmD[0]=minmod2(sD,DmD[1]);
 			DmP[0]=minmod2(sP,DmP[1]);
 			if (LIMITER_CONF>0)
-				{									
+				{
 					DmU[0]=minmod2(sU,DmU[1]);
 					TmV[0]=minmod2(sV,TmV[1]);
 				}
@@ -446,14 +460,14 @@ int main()
 							UUxi2[0][j]=UU[0];
 							PP2[0][j]=PP[0];
 							GammaGamma2[0][j]=GammaGamma[0];
-						}	
+						}
 					sprintf(file_data, "%s/FLU_VAR_%.5g.dat", DATAOUT,plot_t);
 					out=fopen(file_data,"w");
-					wrin2s(out,rb,zb,DD2,UUxi2,PP2,GammaGamma2,time);	
+					wrin2s(out,rb,zb,DD2,UUxi2,PP2,GammaGamma2,time);
 					fclose(out);
 					plot_t+=D_PLOT_T;
 				}
-			
+
 			if(time-Timeout>EPS)
 				break;
 		}//end k
@@ -472,7 +486,7 @@ int main()
 	Write(outs,PP,Ncell);
 	fprintf(outs,"];\n");
 	fclose(outs);
-	
+
 	for(i=0;i<=Ncell;i++)
 		for(j=0;j<=Tcell_plot;j++)
 			{
@@ -493,11 +507,11 @@ int main()
 			UUxi2[0][j]=UU[0];
 			PP2[0][j]=PP[0];
 			GammaGamma2[0][j]=GammaGamma[0];
-		}	
+		}
 	sprintf(file_data, "%s/FLU_VAR_%.5g.dat", DATAOUT, time);
 	out=fopen(file_data,"w");
-	wrin2s(out,rb,zb,DD2,UUxi2,PP2,GammaGamma2,time);	
+	wrin2s(out,rb,zb,DD2,UUxi2,PP2,GammaGamma2,time);
 	fclose(out);
-					
+
 	return 1;
 }

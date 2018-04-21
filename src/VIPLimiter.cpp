@@ -1,5 +1,5 @@
 #include "./initdata.h"
-#include "VIPLimiter.h"
+#include "./VIPLimiter.h"
 
 double useVIPLimiter(int neigh_cell_num, double Vave[][2], double* V0, double* Vp)
 {

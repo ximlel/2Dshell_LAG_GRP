@@ -2,7 +2,7 @@
 #define _INITDTATA_H
 
 
-#define Ncell 3000 // Number of computing cells in r direction
+#define Ncell 6000 // Number of computing cells in r direction
 #define Tcell 400  // Number of computing cells in theta direction
 #define Diaph1 (10.)
 #define Diaph2 (10.2)
