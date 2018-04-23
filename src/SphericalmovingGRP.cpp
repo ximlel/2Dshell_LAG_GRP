@@ -222,7 +222,7 @@ int main()
 					r=0.5*(Rb[i]+Rb[i+1])/cos(0.5*dtheta);
 					C_star=sqrt(GammaL*PM/DML);
 					AcousticSLagTangent(DtP,DtU,DUL+TVL,DPL*cos(0.5*dtheta),DML,UL*cos(0.5*dtheta)+VL*sin(0.5*dtheta),C_star,r);
-					F2P[i]=PM+dt*DtP;
+					F2P[i]=PM+0.5*dt*DtP;
 					VLmin[i]=(UL*cos(0.5*dtheta)+VL*sin(0.5*dtheta)+dt*DtU)*sin(0.5*dtheta);
 				}//end for 2 round
 
