@@ -13,6 +13,6 @@ make in the folder "src".
 # Copyright
 Original version by Mr. Chen.
 
-VIP limiter by Mr. Cheng.
+BJ, VIP limiter by Mr. Cheng.
 
 Copyright © 2018 ximlel. See LICENSE for more details.

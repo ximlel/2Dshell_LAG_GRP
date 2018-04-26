@@ -2,7 +2,7 @@
 #define _INITDTATA_H
 
 
-#define Ncell 6000 // Number of computing cells in r direction
+#define Ncell 3000 // Number of computing cells in r direction
 #define Tcell 400  // Number of computing cells in theta direction
 #define Diaph1 (10.)
 #define Diaph2 (10.2)
@@ -10,12 +10,18 @@
 #define Domlen (15) // Domain length
 
 #define Tcell_plot 100 // Output zoom
-#define Timeout (0.8) // Output time
+#define Timeout (0.78) // Output time
 #define D_PLOT_T (0.01) // Output time interval
 
-#define Alpha (1.999) // GRP limiter parameter
-#define LIMITER_CONF -2  /* LIMITER<0, add VIP limiter; LIMITER>0, only minmod limiter;
-			   abs(LIMITER)=1, original minmod limiter; abs(LIMITER)=2, VIP-like minmod limiter */
+#define Alpha (1.98) // GRP limiter parameter
+
+//#define LIMITER_CONF 2  /* LIMITER<0, add VIP limiter; LIMITER>0, only minmod limiter;
+//			               abs(LIMITER)=1, original minmod limiter; abs(LIMITER)=2, VIP-like minmod limiter */
+
+#define LIMITER_CONF 4  /* LIMITER_CONF:=1  original minmod limiter, LIMITER_CONF:=2  VIP-like minmod limiter
+						   LIMITER_CONF:=3  VIP-limiter,             LIMITER_CONF:=4  BJ limiter */
+
+#define RECONSTRUCTION 1 /* Least-squares:=1, GRP:=2 */
 
 #define GAMMAL (1.4)
 #define GAMMAR (3.0) // Ratio of special heats Gamma=1.4 or 3.0
@@ -31,6 +37,5 @@
 
 #define EPS (1e-8)
 #define DATAOUT "../data_out2" //data out folder
-
 
 #endif

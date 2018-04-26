@@ -1,6 +1,9 @@
 #include <stdio.h>
 #include <math.h>
 #include <string.h>
+#include <algorithm>
+#include <iostream>
+#include <fstream>
 #ifdef _WIN32
 #include <direct.h>
 #elif __linux__
@@ -15,14 +18,16 @@
 #endif
 #define pi (4.*atan(1.0))
 #define CFL (0.45) // CFL condition
-#define M (2.)    // m=1 planar; m=2 cylindrical; m=3 spherical
+#define M (2.)     // m=1 planar; m=2 cylindrical; m=3 spherical
 #define Epsilon (1.) // r_0=Epsilon*dr
 #include "./initdata2.h"
-#define Md Ncell+5 // max vector dimension
+#define Md Ncell+5  // max vector dimension
 #define Mt Tcell+5  // max theta dimension
 #include "./inp.h"
 #include "./Riemann.h"
 #include "./VIPLimiter.h"
+#include "./BJLimiter.h"
+
 int main()
 {	//parameters
 	double GammaL=GAMMAL, GammaR=GAMMAR;
@@ -354,50 +359,183 @@ int main()
 			//VIP limiter update
 			for(i=1;i<Ncell;i++)
 				{
-					sU=(Umin[i+1] -Umin[i]) /Ddr[i];
-					sP=(Pmin[i+1] -Pmin[i]) /Ddr[i];
-					sD=(DLmin[i+1]-DRmin[i])/Ddr[i];
-					//sV=0.;
-					//sV=VLmin[i]/(0.5*(Rb[i]+Rb[i+1])*tan(0.5*dtheta));
-					sV=UU[i]/(0.5*(Rb[i]+Rb[i+1]));
-					Vave[0][0] = UU[i+1];
-					Vave[0][1] = 0.;
-					Vave[1][0] = UU[i-1];
-					Vave[1][1] = 0.;
-					Vave[2][0] = UU[i]*cos(dtheta);
-					Vave[2][1] = UU[i]*sin(dtheta);
-					Vave[3][0] = UU[i]*cos(dtheta);
-					Vave[3][1] =-UU[i]*sin(dtheta);
-					V0[0] = UU[i];
-					V0[1] = 0.;
-					Vp1[0] = UU[i]+(0.5*(Rb[i]+Rb[i+1])-RR[i])*sU;
-					Vp1[1] = 0.5*(Rb[i]+Rb[i+1])*tan(0.5*dtheta)*sV;
-					Vp2[0] = UU[i]+DdrL[i]*sU;
-					Vp2[1] = 0.0;
-					Vp3[0] = UU[i]-DdrR[i]*sU;
-					Vp3[1] = 0.0;
-					VIP_lim = fmin(1.0,     useVIPLimiter(4, Vave, V0, Vp1));
-					VIP_lim = fmin(VIP_lim, useVIPLimiter(4, Vave, V0, Vp2));
-					VIP_lim = fmin(VIP_lim, useVIPLimiter(4, Vave, V0, Vp3));
-					DmU[i]=VIP_lim*sU;
-					TmV[i]=VIP_lim*sV;
-					if (abs(LIMITER_CONF)==1)
-						{
-							DmD[i]=minmod(Alpha*(DD[i]-DD[i-1])/dRc[i],sD,Alpha*(DD[i+1]-DD[i])/dRc[i+1]);
-							DmP[i]=minmod(Alpha*(PP[i]-PP[i-1])/dRc[i],sP,Alpha*(PP[i+1]-PP[i])/dRc[i+1]);
-							if(LIMITER_CONF>0)
-								DmU[i]=minmod(Alpha*(UU[i]-UU[i-1])/dRc[i],sU,Alpha*(UU[i+1]-UU[i])/dRc[i+1]);
-						}
-					else if (abs(LIMITER_CONF)==2)
-						{
-							DmD[i]=minmod(Alpha*(DD[i]-DD[i-1])/2./DdrR[i],sD,Alpha*(DD[i+1]-DD[i])/2./DdrL[i]);
-							DmP[i]=minmod(Alpha*(PP[i]-PP[i-1])/2./DdrR[i],sP,Alpha*(PP[i+1]-PP[i])/2./DdrL[i]);
-							if(LIMITER_CONF>0)
-								DmU[i]=minmod(Alpha*(UU[i]-UU[i-1])/2./DdrR[i],sU,Alpha*(UU[i+1]-UU[i])/2./DdrL[i]);
-						}
-					if (LIMITER_CONF>0)
+					if(RECONSTRUCTION == 1) //Least-Squares reconstruction (Maire's book, p110)
+					{
+						/////////////////////////////////////////////////////////////
+						// Note: In this least square reconstruction, we only reconstruct the slope in xi-direction, 
+						//       as in theta-direction, the slope should be zero.
+						/////////////////////////////////////////////////////////////
+
+						//step-1: set Mc
+						double Mc[2][2]={0}; 
+
+						//(1)cell top:
+						Mc[0][0] += (RR[i+1] - RR[i])*(RR[i+1] - RR[i]);
+
+						//(2)cell bottom:
+						Mc[0][0] += (RR[i-1] - RR[i])*(RR[i-1] - RR[i]);
+
+						//(3)cell left:
+						Mc[0][0] += (cos(dtheta)*RR[i] - RR[i])*(cos(dtheta)*RR[i] - RR[i]);
+						Mc[0][1] += (cos(dtheta)*RR[i] - RR[i])*sin(dtheta)*RR[i];
+						Mc[1][0] += (cos(dtheta)*RR[i] - RR[i])*sin(dtheta)*RR[i];
+						Mc[1][1] += sin(dtheta)*RR[i]*sin(dtheta)*RR[i];
+
+						//(4)cell right:
+						Mc[0][0] += (cos(dtheta)*RR[i] - RR[i])*(cos(dtheta)*RR[i] - RR[i]);
+						Mc[0][1] += (cos(dtheta)*RR[i] - RR[i])*-sin(dtheta)*RR[i];
+						Mc[1][0] += (cos(dtheta)*RR[i] - RR[i])*-sin(dtheta)*RR[i];
+						Mc[1][1] += sin(dtheta)*RR[i]*sin(dtheta)*RR[i];
+
+						//Step-2: set RHS
+						double GD[2]={0}, GUxi[2]={0}, GP[2]={0};
+
+						//gradient of density
+						GD[0] += (DD[i+1] - DD[i])*(RR[i+1] - RR[i]); //top cell
+						GD[0] += (DD[i-1] - DD[i])*(RR[i-1] - RR[i]); //bottom cell
+
+						//gradient of pressure
+						GP[0] += (PP[i+1] - PP[i])*(RR[i+1] - RR[i]); //top cell
+						GP[0] += (PP[i-1] - PP[i])*(RR[i-1] - RR[i]); //bottom cell
+
+						//gradient of U_{xi}
+						GUxi[0] += (UU[i+1] - UU[i])*(RR[i+1] - RR[i]); //top cell
+						GUxi[0] += (UU[i-1] - UU[i])*(RR[i-1] - RR[i]); //bottom cell
+						GUxi[0] += (UU[i]*cos(dtheta) - UU[i])*(cos(dtheta)*RR[i] - RR[i]); //left cell
+						GUxi[0] += (UU[i]*cos(dtheta) - UU[i])*(cos(dtheta)*RR[i] - RR[i]); //right cell
+
+						//Step-3: now we compute the reconstructed slope by solving the LS problem
+						double det = Mc[0][0]*Mc[1][1] - Mc[0][1]*Mc[1][0];
+
+						//density
+						//sD = GD[0] * Mc[1][1]/det;
+						sD = GD[0]/Mc[0][0];
+
+						//pressure
+						//sP = GP[0] * Mc[1][1]/det;
+						sP = GP[0]/Mc[0][0];
+
+						//Uxi
+						//sU = GUxi[0] * Mc[1][1]/det;
+						sU = GUxi[0]/Mc[0][0];
+
+						//sV (we use the same strategy as it is in the GRP reconstruction)
+						sV = UU[i]/(0.5*(Rb[i]+Rb[i+1]));
+					}
+					else if(RECONSTRUCTION == 2) //GRP reconstruction for cell gradient
+					{
+						sU=(Umin[i+1] -Umin[i]) /Ddr[i];
+						sP=(Pmin[i+1] -Pmin[i]) /Ddr[i];
+						sD=(DLmin[i+1]-DRmin[i])/Ddr[i];
+						//sV=0.;
+						//sV=VLmin[i]/(0.5*(Rb[i]+Rb[i+1])*tan(0.5*dtheta));
+						sV=UU[i]/(0.5*(Rb[i]+Rb[i+1]));
+					}
+					else
+					{ 
+						//do nothing 
+					}
+					
+					//Use limiter here
+					if(LIMITER_CONF == 1) //original minmod limiter
+					{
+						DmD[i]=minmod(Alpha*(DD[i]-DD[i-1])/dRc[i],sD,Alpha*(DD[i+1]-DD[i])/dRc[i+1]);
+						DmP[i]=minmod(Alpha*(PP[i]-PP[i-1])/dRc[i],sP,Alpha*(PP[i+1]-PP[i])/dRc[i+1]);
+						DmU[i]=minmod(Alpha*(UU[i]-UU[i-1])/dRc[i],sU,Alpha*(UU[i+1]-UU[i])/dRc[i+1]);
+
 						TmV[i]=minmod2(Alpha*(UU[i]*sin(dtheta))/2./(0.5*(Rb[i]+Rb[i+1])*tan(0.5*dtheta)),sV);
+					}
+					else if(LIMITER_CONF == 2) //VIP-like minmod limiter
+					{
+						DmD[i]=minmod(Alpha*(DD[i]-DD[i-1])/2./DdrR[i],sD,Alpha*(DD[i+1]-DD[i])/2./DdrL[i]);
+						DmP[i]=minmod(Alpha*(PP[i]-PP[i-1])/2./DdrR[i],sP,Alpha*(PP[i+1]-PP[i])/2./DdrL[i]);
+						DmU[i]=minmod(Alpha*(UU[i]-UU[i-1])/2./DdrR[i],sU,Alpha*(UU[i+1]-UU[i])/2./DdrL[i]);
+
+						TmV[i]=minmod2(Alpha*(UU[i]*sin(dtheta))/2./(0.5*(Rb[i]+Rb[i+1])*tan(0.5*dtheta)),sV);
+					}
+					else if(LIMITER_CONF == 3) //VIP limiter
+					{
+						Vave[0][0] = UU[i+1];
+						Vave[0][1] = 0.;
+						Vave[1][0] = UU[i-1];
+						Vave[1][1] = 0.;
+						Vave[2][0] = UU[i]*cos(dtheta);
+						Vave[2][1] = UU[i]*sin(dtheta);
+						Vave[3][0] = UU[i]*cos(dtheta);
+						Vave[3][1] =-UU[i]*sin(dtheta);
+						V0[0] = UU[i];
+						V0[1] = 0.;
+						Vp1[0] = UU[i]+(0.5*(Rb[i]+Rb[i+1])-RR[i])*sU;
+						Vp1[1] = 0.5*(Rb[i]+Rb[i+1])*tan(0.5*dtheta)*sV;
+						Vp2[0] = UU[i]+DdrL[i]*sU;
+						Vp2[1] = 0.0;
+						Vp3[0] = UU[i]-DdrR[i]*sU;
+						Vp3[1] = 0.0;
+						VIP_lim = std::min(1.0,     useVIPLimiter(4, Vave, V0, Vp1));
+						VIP_lim = std::min(VIP_lim, useVIPLimiter(4, Vave, V0, Vp2));
+						VIP_lim = std::min(VIP_lim, useVIPLimiter(4, Vave, V0, Vp3));
+						DmU[i]=VIP_lim*sU;
+						TmV[i]=VIP_lim*sV;
+
+						//for density and pressure, we still use VIP-like minmod limiter
+						DmD[i]=minmod(Alpha*(DD[i]-DD[i-1])/2./DdrR[i],sD,Alpha*(DD[i+1]-DD[i])/2./DdrL[i]);
+						DmP[i]=minmod(Alpha*(PP[i]-PP[i-1])/2./DdrR[i],sP,Alpha*(PP[i+1]-PP[i])/2./DdrL[i]);
+					}
+					else if(LIMITER_CONF == 4) //BJ limiter (Maire's book, p101)
+					{
+						double Vmax(0), Vmin(0), BJ_lim(0);
+						double beta(0.99);
+
+						//Limit density...
+						Vmax = std::max(DD[i], DD[i+1]);
+						Vmax = std::max(DD[i-1], Vmax);
+						Vmin = std::min(DD[i], DD[i+1]);
+						Vmin = std::min(DD[i-1], Vmin);
+						Vp1[0] = DD[i]+(0.5*(Rb[i]+Rb[i+1])-RR[i])*sD;
+						Vp2[0] = DD[i]+DdrL[i]*sD;
+						Vp3[0] = DD[i]-DdrR[i]*sD;
+						BJ_lim = BJLimiter(Vmax, Vmin, DD[i], Vp1[0]);
+						BJ_lim = std::min( BJ_lim, BJLimiter(Vmax, Vmin, DD[i], Vp2[0]) );
+						BJ_lim = std::min( BJ_lim, BJLimiter(Vmax, Vmin, DD[i], Vp3[0]) );
+						DmD[i] = beta*BJ_lim*sD;
+
+						//Limit pressure...
+						Vmax = std::max(PP[i], PP[i+1]);
+						Vmax = std::max(PP[i-1], Vmax);
+						Vmin = std::min(PP[i], PP[i+1]);
+						Vmin = std::min(PP[i-1], Vmin);
+						Vp1[0] = PP[i]+(0.5*(Rb[i]+Rb[i+1])-RR[i])*sP;
+						Vp2[0] = PP[i]+DdrL[i]*sP;
+						Vp3[0] = PP[i]-DdrR[i]*sP;
+						BJ_lim = BJLimiter(Vmax, Vmin, PP[i], Vp1[0]);
+						BJ_lim = std::min( BJ_lim, BJLimiter(Vmax, Vmin, PP[i], Vp2[0]) );
+						BJ_lim = std::min( BJ_lim, BJLimiter(Vmax, Vmin, PP[i], Vp3[0]) );
+						DmP[i] = beta*BJ_lim*sP;
+
+						//Limit Uxi...
+						Vmax = std::max(UU[i], UU[i+1]);
+						Vmax = std::max(UU[i-1], Vmax);
+						Vmax = std::max(UU[i]*cos(dtheta), Vmax);
+						Vmin = std::min(UU[i], UU[i+1]);
+						Vmin = std::min(UU[i-1], Vmin);
+						Vmin = std::min(UU[i]*cos(dtheta), Vmin);
+						Vp1[0] = UU[i]+(0.5*(Rb[i]+Rb[i+1])-RR[i])*sU;
+						Vp2[0] = UU[i]+DdrL[i]*sU;
+						Vp3[0] = UU[i]-DdrR[i]*sU;
+						BJ_lim = BJLimiter(Vmax, Vmin, UU[i], Vp1[0]);
+						BJ_lim = std::min(BJ_lim, BJLimiter(Vmax, Vmin, UU[i], Vp2[0]));
+						BJ_lim = std::min(BJ_lim, BJLimiter(Vmax, Vmin, UU[i], Vp3[0]));
+						DmU[i] = beta*BJ_lim*sU;
+
+						//Limit Utheta...(only use minmod here...)
+						TmV[i]=minmod2(Alpha*(UU[i]*sin(dtheta))/2./(0.5*(Rb[i]+Rb[i+1])*tan(0.5*dtheta)),sV);
+					}
+					else
+					{
+						//do nothing...
+					}
 				}
+
 			// i = 0
 			sU=(Umin[1]-UU[0]) /dRc[0];
 			sP=(Pmin[1]-PP[0]) /dRc[0];
@@ -417,13 +555,13 @@ int main()
 			Vp1[1] = 0.5*Rb[1]*tan(0.5*dtheta)*sV;
 			Vp2[0] = UU[0]+DdrL[0]*sU;
 			Vp2[1] = 0.;
-			VIP_lim = fmin(1.0,     useVIPLimiter(3, Vave, V0, Vp1));
-			VIP_lim = fmin(VIP_lim, useVIPLimiter(3, Vave, V0, Vp2));
+			VIP_lim = std::min(1.0,     useVIPLimiter(3, Vave, V0, Vp1));
+			VIP_lim = std::min(VIP_lim, useVIPLimiter(3, Vave, V0, Vp2));
 			DmU[0]=VIP_lim*sU;
 			TmV[0]=VIP_lim*sV;
 			DmD[0]=minmod2(sD,DmD[1]);
 			DmP[0]=minmod2(sP,DmP[1]);
-			if (LIMITER_CONF>0)
+			if (LIMITER_CONF == 1 || LIMITER_CONF == 2)
 				{
 					DmU[0]=minmod2(sU,DmU[1]);
 					TmV[0]=minmod2(sV,TmV[1]);
@@ -487,6 +625,15 @@ int main()
 	fprintf(outs,"];\n");
 	fclose(outs);
 
+	std::fstream fileout("../datas_fin.dat", std::ios::out);
+	fileout<<"TITLE=DATAS_FIN.m"<<std::endl;
+	fileout<<"VARIABLES="<<"R"<<" , "<<"Rho"<<" , "<<"Uxi"<<" , "<<"Pre"<<std::endl;
+	for(int i = 0; i != Ncell; ++i)
+	{
+		fileout<<RR[i]<<"  "<<DD[i]<<"  "<<UU[i]<<"  "<<PP[i]<<std::endl;
+	}
+	fileout.close();
+
 	for(i=0;i<=Ncell;i++)
 		for(j=0;j<=Tcell_plot;j++)
 			{
@@ -513,5 +660,5 @@ int main()
 	wrin2s(out,rb,zb,DD2,UUxi2,PP2,GammaGamma2,time);
 	fclose(out);
 
-	return 1;
+	return 0;
 }
